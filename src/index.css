@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.985 0.008 200);
+  --foreground: oklch(0.22 0.03 220);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.03 220);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.03 220);
+  --primary: oklch(0.38 0.07 210);
+  --primary-foreground: oklch(0.985 0.01 180);
+  --secondary: oklch(0.94 0.02 200);
+  --secondary-foreground: oklch(0.28 0.04 210);
+  --muted: oklch(0.95 0.015 200);
+  --muted-foreground: oklch(0.48 0.03 220);
+  --accent: oklch(0.93 0.03 190);
+  --accent-foreground: oklch(0.28 0.05 210);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.02 200);
+  --input: oklch(0.9 0.02 200);
+  --ring: oklch(0.45 0.07 210);
+  --chart-1: oklch(0.45 0.08 210);
+  --chart-2: oklch(0.65 0.12 165);
+  --chart-3: oklch(0.75 0.12 85);
+  --chart-4: oklch(0.55 0.08 250);
+  --chart-5: oklch(0.5 0.04 30);
+  --sidebar: oklch(0.28 0.045 210);
+  --sidebar-foreground: oklch(0.96 0.01 180);
+  --sidebar-accent: oklch(0.36 0.05 200);
+  --sidebar-accent-foreground: oklch(0.98 0.01 180);
+  --sidebar-border: oklch(0.34 0.04 210);
+  --sidebar-ring: oklch(0.7 0.08 190);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .template-type-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .template-type-icon::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    background-color: currentColor;
+    -webkit-mask: var(--template-icon) center / contain no-repeat;
+    mask: var(--template-icon) center / contain no-repeat;
+  }
+
+  .template-type-icon-word {
+    color: #2b579a;
+    --template-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M3.2 1.4h6.1L13 5.1v9.1c0 .8-.6 1.4-1.4 1.4H4.2c-.8 0-1.4-.6-1.4-1.4V2.8c0-.8.6-1.4 1.4-1.4zm5.9.5v3.6H13'/%3E%3Cpath fill='black' d='M4.9 12.3 6.2 6.6h1.2l.7 3.6.8-3.6h1.1l-1.2 5.7H7.6l-.7-3.4-.7 3.4H4.9z'/%3E%3C/svg%3E");
+  }
+
+  .template-type-icon-pdf {
+    color: #c43d3d;
+    --template-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M3.2 1.4h6.1L13 5.1v9.1c0 .8-.6 1.4-1.4 1.4H4.2c-.8 0-1.4-.6-1.4-1.4V2.8c0-.8.6-1.4 1.4-1.4zm5.9.5v3.6H13'/%3E%3Cpath fill='black' d='M5.1 7.1h1.7c1.1 0 1.8.6 1.8 1.6 0 1-.7 1.6-1.8 1.6H6.2v1.9H5.1V7.1zm1.1.9v1.4h.5c.5 0 .8-.3.8-.7 0-.4-.3-.7-.8-.7h-.5z'/%3E%3C/svg%3E");
+  }
+}

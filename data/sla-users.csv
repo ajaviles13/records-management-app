@@ -1,0 +1,6 @@
+user_id,email,first_name,last_name,abbreviation,role_access,last_login,created_at,profile_image
+1,analyst1-test@test.com,John,Smith,AS,Analyst,2026-08-23T19:47:35.222Z,2026-08-13T13:11:00Z,https://images.unsplash.com/photo-1740252117044-2af197eea287?q=80&w=116
+2,manager-test@test.com,Manager,User,AM,Manager,2026-08-23T19:17:39.731Z,2026-08-13T13:11:00Z,https://media.istockphoto.com/id/1389898400/photo/young-dark-skinned-man-with-mustache-in-beanie-with-cute-iconic-character-3d-rendering.webp?s=1024x1024
+3,administrator-test@test.com,Administrator,User,A,Administrator,2026-08-23T19:28:42.533Z,2026-08-13T13:11:00Z,
+4,viewer-test@test.com,Viewer,User,V,Viewer,2026-08-22T17:25:15.307Z,2026-08-13T13:11:00Z,
+5,analyst2-test@test.com,AnalystTwo,User,A2,Analyst,2026-08-22T17:22:57.053Z,2026-08-13T13:11:00Z,

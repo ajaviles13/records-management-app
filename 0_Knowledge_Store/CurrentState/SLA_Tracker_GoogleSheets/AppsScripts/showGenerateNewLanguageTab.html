@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #3c3c3c;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    h3 {
+      color: #6a6a6a;
+      text-align: center;
+      margin-top: 0;
+      font-weight: normal;
+      font-size: 1.1em;
+      margin-bottom: 25px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #555;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 5px; /* Reduced margin to make room for counter */
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box; 
+      font-size: 1em;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 1.1em;
+      transition: background-color 0.3s ease;
+      display: block;
+      margin-top: 20px; /* Added margin above button */
+    }
+    button:hover:not(:disabled) {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .message {
+      text-align: center;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      display: none;
+    }
+    .error {
+      background-color: #fdd;
+      color: #d8000c;
+      border: 1px solid #d8000c;
+    }
+    .success {
+      background-color: #dfd;
+      color: #4f8a10;
+      border: 1px solid #4f8a10;
+    }
+    .char-counter {
+        text-align: right;
+        font-size: 0.9em;
+        color: #777;
+        margin-bottom: 15px;
+    }
+    .char-counter.error {
+        color: #d8000c;
+        font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Generate New Language Tab</h1>
+  <h3>Please enter the name of your new language tab</h3>
+
+  <div id="messageBox" class="message"></div>
+
+  <label for="languageName">New Tab Name:</label>
+  <input type="text" id="languageName" placeholder="e.g., FR, ES, etc." oninput="checkLength()">
+  <div id="charCounter" class="char-counter">0/15 characters</div>
+
+  <button id="generateButton" onclick="handleGenerateClick()">Generate New Tab</button>
+</div>
+
+<script>
+  const MAX_CHARS = 15;
+  
+  // Function to show messages in the HTML dialog
+  function showMessage(type, message) {
+    const msgBox = document.getElementById('messageBox');
+    msgBox.textContent = message;
+    msgBox.className = 'message ' + type;
+    msgBox.style.display = 'block';
+  }
+
+  // Function to handle character count and button state
+  function checkLength() {
+    const tabNameInput = document.getElementById('languageName');
+    const generateButton = document.getElementById('generateButton');
+    const counter = document.getElementById('charCounter');
+    const currentLength = tabNameInput.value.length;
+    
+    counter.textContent = currentLength + '/' + MAX_CHARS + ' characters';
+    
+    if (currentLength > MAX_CHARS) {
+      counter.classList.add('error');
+      generateButton.disabled = true;
+      showMessage('error', 'Tab name is too long (Max ' + MAX_CHARS + ' characters).');
+    } else if (currentLength === 0) {
+      counter.classList.remove('error');
+      generateButton.disabled = true;
+      document.getElementById('messageBox').style.display = 'none';
+    } else {
+      counter.classList.remove('error');
+      generateButton.disabled = false;
+      document.getElementById('messageBox').style.display = 'none';
+    }
+  }
+
+  // Function to handle the button click
+  function handleGenerateClick() {
+    const tabNameInput = document.getElementById('languageName');
+    const tabName = tabNameInput.value.trim();
+    const generateButton = document.getElementById('generateButton');
+    
+    // Clear previous messages and disable button
+    document.getElementById('messageBox').style.display = 'none';
+    generateButton.disabled = true;
+    tabNameInput.disabled = true;
+
+    if (!tabName) {
+      showMessage('error', 'Please enter a name for the new tab.');
+      generateButton.disabled = false;
+      tabNameInput.disabled = false;
+      return;
+    }
+    
+    // Call the server-side function
+    google.script.run
+      .withSuccessHandler(onSuccess)
+      .withFailureHandler(onFailure)
+      .generateNewLanguageTab(tabName);
+  }
+
+  // Success handler for the server-side call
+  function onSuccess(response) {
+    const generateButton = document.getElementById('generateButton');
+    const tabNameInput = document.getElementById('languageName');
+    
+    if (response.success) {
+      showMessage('success', response.message);
+      // Optional: Close the dialog after a short delay for success
+      setTimeout(() => google.script.host.close(), 3000);
+    } else {
+      showMessage('error', response.message);
+      generateButton.disabled = false;
+      tabNameInput.disabled = false;
+    }
+  }
+
+  // Failure handler for the server-side call (API failure, not business logic)
+  function onFailure(error) {
+    const generateButton = document.getElementById('generateButton');
+    const tabNameInput = document.getElementById('languageName');
+    
+    showMessage('error', 'An unexpected error occurred: ' + error.message);
+    generateButton.disabled = false;
+    tabNameInput.disabled = false;
+  }
+  
+  // Initial check on load
+  document.addEventListener('DOMContentLoaded', checkLength);
+</script>
+
+</body>
+</html>

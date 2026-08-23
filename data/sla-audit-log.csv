@@ -1,0 +1,2 @@
+id,timestamp,artifact_id,artifact_table,artifact_name,old_field_value,new_field_value,trigger_source,user_id,event_type
+f27c8a91-6d43-4e05-b7c2-1a9f53d8e746,2026-08-13T23:21:00Z,d4c89127-3e56-4b0a-bf93-1c7d2e85a649,sla-file-records,delivered_at_est,<empty>,2026-07-01 15:15:00,User,1,Updated

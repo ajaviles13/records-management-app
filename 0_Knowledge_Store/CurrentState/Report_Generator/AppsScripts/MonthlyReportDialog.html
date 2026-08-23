@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Google Sans', Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    
+    h2 {
+      margin: 0 0 10px 0;
+      color: #667eea;
+      font-size: 24px;
+      font-weight: 600;
+      text-align: center;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+    
+    .form-group {
+      margin-bottom: 25px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #555;
+      font-size: 14px;
+    }
+    
+    .required {
+      color: #e74c3c;
+    }
+    
+    input[type="text"],
+    input[type="date"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: all 0.3s ease;
+    }
+    
+    input[type="text"]:focus,
+    input[type="date"]:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .radio-group {
+      display: flex;
+      gap: 15px;
+      margin-top: 8px;
+    }
+    
+    .radio-option {
+      flex: 1;
+    }
+    
+    .radio-option input[type="radio"] {
+      display: none;
+    }
+    
+    .radio-option label {
+      display: block;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      color: #555;
+      margin: 0;
+    }
+    
+    .radio-option input[type="radio"]:checked + label {
+      background: #667eea;
+      border-color: #667eea;
+      color: white;
+    }
+    
+    .radio-option label:hover {
+      border-color: #667eea;
+      background: #f5f7ff;
+    }
+    
+    .radio-option input[type="radio"]:checked + label:hover {
+      background: #5568d3;
+    }
+    
+    .date-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 8px;
+    }
+    
+    .conditional-section {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .conditional-section.visible {
+      display: block;
+    }
+    
+    .helper-text {
+      font-size: 12px;
+      color: #777;
+      margin-top: 5px;
+      font-style: italic;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+    }
+    
+    button {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .generate-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .generate-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .generate-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .cancel-btn {
+      background: #f5f5f5;
+      color: #666;
+    }
+    
+    .cancel-btn:hover {
+      background: #e0e0e0;
+    }
+    
+    .progress-container {
+      display: none;
+      margin-top: 20px;
+    }
+    
+    .progress-container.visible {
+      display: block;
+    }
+    
+    .progress-header {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+    
+    .progress-details {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .progress-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .progress-label {
+      color: #555;
+      font-weight: 500;
+    }
+    
+    .progress-value {
+      color: #667eea;
+      font-weight: 600;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .success-message {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      background: #d4edda;
+      border: 2px solid #c3e6cb;
+      border-radius: 8px;
+      color: #155724;
+      margin-top: 20px;
+    }
+    
+    .success-message.visible {
+      display: block;
+    }
+    
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+    
+    .summary-section {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 20px 0;
+      border-left: 4px solid #28a745;
+    }
+    
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 15px;
+      align-items: center;
+    }
+    
+    .summary-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .summary-label {
+      color: #555;
+      font-weight: 500;
+    }
+    
+    .summary-value {
+      color: #155724;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    
+    .breakdown-header {
+      font-weight: 600;
+      color: #155724;
+      margin: 20px 0 10px 0;
+      font-size: 15px;
+      border-bottom: 2px solid #c3e6cb;
+      padding-bottom: 8px;
+    }
+    
+    .breakdown-list {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: white;
+      border-radius: 6px;
+      border-left: 3px solid #28a745;
+    }
+    
+    .breakdown-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .breakdown-name {
+      color: #555;
+      font-weight: 500;
+    }
+    
+    .breakdown-count {
+      color: #28a745;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    
+    .error-message {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      background: #f8d7da;
+      border: 2px solid #f5c6cb;
+      border-radius: 8px;
+      color: #721c24;
+      margin-top: 20px;
+    }
+    
+    .error-message.visible {
+      display: block;
+    }
+    
+    .close-btn {
+      margin-top: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    .close-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>☁️ Generate Monthly Report</h2>
+    <div class="subtitle">
+      Extract and consolidate letter data from all source sheets<br>
+      based on your selected date range and filtering criteria
+    </div>
+    
+    <form id="reportForm">
+      <!-- Date Field Selection -->
+      <div class="form-group">
+        <label>
+          Select Date Field for Filtering <span class="required">*</span>
+        </label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" id="dateFieldReceived" name="dateField" value="Received" checked>
+            <label for="dateFieldReceived">📥 Date Received</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="dateFieldDelivered" name="dateField" value="Delivered">
+            <label for="dateFieldDelivered">📤 Date Delivered</label>
+          </div>
+        </div>
+        <div class="helper-text">
+          Choose which date field to use for the date range filter
+        </div>
+      </div>
+      
+      <!-- Date Range Selection -->
+      <div class="form-group">
+        <label>
+          Date Range (Inclusive) <span class="required">*</span>
+        </label>
+        <div class="date-inputs">
+          <div>
+            <input 
+              type="date" 
+              id="lowerBoundDate" 
+              required
+              placeholder="MM/DD/YYYY"
+            >
+            <div class="helper-text">Lower bound</div>
+          </div>
+          <div>
+            <input 
+              type="date" 
+              id="upperBoundDate" 
+              required
+              placeholder="MM/DD/YYYY"
+            >
+            <div class="helper-text">Upper bound</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Conditional: Include Empty Delivered When Received Selected -->
+      <div id="conditionalSection" class="conditional-section visible">
+        <label>
+          Include files with empty "Date file delivered"?
+        </label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" id="includeEmptyDeliveredNo" name="includeEmptyDelivered" value="No" checked>
+            <label for="includeEmptyDeliveredNo">No</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="includeEmptyDeliveredYes" name="includeEmptyDelivered" value="Yes">
+            <label for="includeEmptyDeliveredYes">Yes</label>
+          </div>
+        </div>
+        <div class="helper-text">
+          If "Yes", includes files with empty "Date file delivered" but their "Date file received" is within the selected date range. If "No", only includes files that have both dates populated.
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="button-group">
+        <button type="button" class="cancel-btn" onclick="google.script.host.close()">
+          Cancel
+        </button>
+        <button type="submit" class="generate-btn" id="generateBtn">
+          Generate Report
+        </button>
+      </div>
+    </form>
+    
+    <!-- Progress Indicator -->
+    <div id="progressContainer" class="progress-container">
+      <div class="progress-header">⚙️ Generating Report...</div>
+      <div class="progress-details">
+        <div class="progress-item">
+          <span class="progress-label">Time elapsed:</span>
+          <span class="progress-value" id="elapsedTime">0:00</span>
+        </div>
+        <div class="progress-item">
+          <span class="progress-label">Extracting from Sheet:</span>
+          <span class="progress-value" id="sheetProgress">0 / 0</span>
+        </div>
+        <div class="progress-item">
+          <span class="progress-label">Current Sheet Name:</span>
+          <span class="progress-value" id="currentSheetName">-</span>
+        </div>
+        <div class="progress-item">
+          <span class="progress-label">Current Tab Name:</span>
+          <span class="progress-value" id="currentTabName">-</span>
+        </div>
+      </div>
+      <div class="spinner"></div>
+    </div>
+    
+    <!-- Success Message with Summary -->
+    <div id="successMessage" class="success-message">
+      <h3 style="margin: 10px 0 20px 0; color: #155724;">✅ Report Generated Successfully!</h3>
+      
+      <div class="summary-section">
+        <div class="summary-item">
+          <span class="summary-label">📊 Report Tab:</span>
+          <span class="summary-value" id="summaryTabName">-</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">⏱️ Total Time:</span>
+          <span class="summary-value" id="summaryElapsedTime">-</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">📝 Total Letters:</span>
+          <span class="summary-value" id="summaryTotalRows">-</span>
+        </div>
+      </div>
+      
+      <div class="breakdown-header">Letters Imported by Source Sheet:</div>
+      <div id="sheetBreakdown" class="breakdown-list"></div>
+      
+      <button class="close-btn" onclick="google.script.host.close()">Close</button>
+    </div>
+    
+    <!-- Error Message -->
+    <div id="errorMessage" class="error-message">
+      <div id="errorText"></div>
+      <button class="close-btn" onclick="hideError()">Try Again</button>
+    </div>
+  </div>
+
+  <script>
+    // Show/hide conditional section based on date field selection
+    function toggleConditionalSection() {
+      const dateFieldReceived = document.getElementById('dateFieldReceived').checked;
+      const conditionalSection = document.getElementById('conditionalSection');
+      
+      if (dateFieldReceived) {
+        // Show conditional for Date Received mode
+        conditionalSection.classList.add('visible');
+      } else {
+        // Hide conditional for Date Delivered mode
+        conditionalSection.classList.remove('visible');
+      }
+    }
+    
+    // Add event listeners for radio buttons
+    document.getElementById('dateFieldReceived').addEventListener('change', toggleConditionalSection);
+    document.getElementById('dateFieldDelivered').addEventListener('change', toggleConditionalSection);
+    
+    // Format date to MM/DD/YYYY (timezone-safe)
+    function formatDate(dateStr) {
+      // HTML date input returns "YYYY-MM-DD" format
+      // Parse it directly to avoid timezone conversion issues
+      const parts = dateStr.split('-');
+      const year = parts[0];
+      const month = parts[1];  // Already zero-padded
+      const day = parts[2];    // Already zero-padded
+      return `${month}/${day}/${year}`;
+    }
+    
+    // Validate form inputs
+    function validateForm() {
+      const lowerBound = document.getElementById('lowerBoundDate').value;
+      const upperBound = document.getElementById('upperBoundDate').value;
+      
+      if (!lowerBound || !upperBound) {
+        alert('Please select both lower and upper bound dates');
+        return false;
+      }
+      
+      const lowerDate = new Date(lowerBound);
+      const upperDate = new Date(upperBound);
+      
+      if (lowerDate > upperDate) {
+        alert('Lower bound date must be before or equal to upper bound date');
+        return false;
+      }
+      
+      return true;
+    }
+    
+    // Poll for progress updates
+    let progressInterval = null;
+    let elapsedTimeInterval = null;
+    let startTime = null;
+    
+    function startProgressPolling() {
+      startTime = new Date().getTime();
+      
+      // Start elapsed time counter
+      elapsedTimeInterval = setInterval(() => {
+        const currentTime = new Date().getTime();
+        const elapsedMs = currentTime - startTime;
+        const elapsedSeconds = Math.floor(elapsedMs / 1000);
+        const minutes = Math.floor(elapsedSeconds / 60);
+        const seconds = elapsedSeconds % 60;
+        document.getElementById('elapsedTime').textContent = 
+          `${minutes}:${String(seconds).padStart(2, '0')}`;
+      }, 1000);
+      
+      // Start progress polling
+      progressInterval = setInterval(() => {
+        google.script.run
+          .withSuccessHandler(updateProgress)
+          .withFailureHandler(() => {
+            // Ignore errors during polling
+          })
+          .getReportProgress();
+      }, 1000); // Poll every second
+    }
+    
+    function stopProgressPolling() {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      if (elapsedTimeInterval) {
+        clearInterval(elapsedTimeInterval);
+        elapsedTimeInterval = null;
+      }
+    }
+    
+    function updateProgress(progress) {
+      if (!progress) return;
+      
+      document.getElementById('sheetProgress').textContent = 
+        `${progress.currentSheet} / ${progress.totalSheets}`;
+      document.getElementById('currentSheetName').textContent = progress.currentSheetName;
+      document.getElementById('currentTabName').textContent = progress.currentTabName;
+    }
+    
+    // Show progress UI
+    function showProgress() {
+      document.getElementById('reportForm').style.display = 'none';
+      document.getElementById('progressContainer').classList.add('visible');
+      startProgressPolling();
+    }
+    
+    // Show success message with summary
+    function showSuccess(result) {
+      stopProgressPolling();
+      document.getElementById('progressContainer').classList.remove('visible');
+      
+      // Populate summary data
+      document.getElementById('summaryTabName').textContent = result.tabName || '-';
+      document.getElementById('summaryElapsedTime').textContent = result.elapsedTime || '-';
+      document.getElementById('summaryTotalRows').textContent = 
+        (result.totalRows || 0).toLocaleString() + ' letters';
+      
+      // Populate sheet breakdown
+      const breakdownContainer = document.getElementById('sheetBreakdown');
+      breakdownContainer.innerHTML = '';
+      
+      if (result.sheetBreakdown && result.sheetBreakdown.length > 0) {
+        result.sheetBreakdown.forEach(sheet => {
+          const breakdownItem = document.createElement('div');
+          breakdownItem.className = 'breakdown-item';
+          breakdownItem.innerHTML = `
+            <span class="breakdown-name">${sheet.name}</span>
+            <span class="breakdown-count">${sheet.count.toLocaleString()} letters</span>
+          `;
+          breakdownContainer.appendChild(breakdownItem);
+        });
+      } else {
+        breakdownContainer.innerHTML = '<div style="text-align: center; color: #666;">No breakdown available</div>';
+      }
+      
+      document.getElementById('successMessage').classList.add('visible');
+    }
+    
+    // Show error message
+    function showError(message) {
+      stopProgressPolling();
+      document.getElementById('progressContainer').classList.remove('visible');
+      document.getElementById('errorText').innerHTML = message.replace(/\n/g, '<br>');
+      document.getElementById('errorMessage').classList.add('visible');
+    }
+    
+    // Hide error and return to form
+    function hideError() {
+      document.getElementById('errorMessage').classList.remove('visible');
+      document.getElementById('reportForm').style.display = 'block';
+    }
+    
+    // Handle form submission
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      if (!validateForm()) {
+        return;
+      }
+      
+      // Get form values
+      const dateField = document.querySelector('input[name="dateField"]:checked').value;
+      const lowerBoundRaw = document.getElementById('lowerBoundDate').value;
+      const upperBoundRaw = document.getElementById('upperBoundDate').value;
+      const includeEmptyDeliveredRaw = document.querySelector('input[name="includeEmptyDelivered"]:checked').value;
+      
+      // Format dates
+      const lowerBound = formatDate(lowerBoundRaw);
+      const upperBound = formatDate(upperBoundRaw);
+      const includeEmptyDelivered = includeEmptyDeliveredRaw === "Yes";
+      
+      // Show progress
+      showProgress();
+      
+      // Call server-side function
+      google.script.run
+        .withSuccessHandler(handleSuccess)
+        .withFailureHandler(handleFailure)
+        .generateMonthlyReport(dateField, lowerBound, upperBound, includeEmptyDelivered);
+    });
+    
+    function handleSuccess(result) {
+      if (result.success) {
+        showSuccess(result);
+      } else {
+        showError(result.message);
+      }
+    }
+    
+    function handleFailure(error) {
+      showError(`❌ An unexpected error occurred:\n\n${error.message}`);
+    }
+  </script>
+</body>
+</html>
