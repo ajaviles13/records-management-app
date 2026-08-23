@@ -43,6 +43,8 @@ export function allRecordsView(): SavedView {
     fields: [...DEFAULT_VIEW_FIELDS],
     conditions: emptyConditions(),
     sorts: [{ field: "received_at_est", direction: "desc" }],
+    assigned_user_ids: [],
+    assigned_roles: [],
     created_by: "",
     created_at: "",
     updated_by: "",

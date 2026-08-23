@@ -34,7 +34,7 @@ import {
   sanitizeViewFields,
   sortRecords,
 } from "@/lib/viewQuery";
-import type { DataDictionaryField, FieldOption, FileRecord, LanguageCode, SavedView, User } from "@/types";
+import type { DataDictionaryField, FieldOption, FileRecord, LanguageCode, SavedView, User, ViewDraft } from "@/types";
 
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   file_name: 650,
@@ -257,7 +257,7 @@ export function RecordsPage() {
     }
   }
 
-  async function saveView(draftView: Pick<SavedView, "name" | "order" | "fields" | "conditions" | "sorts">) {
+  async function saveView(draftView: ViewDraft) {
     setViewPending(true);
     try {
       if (editorMode === "create") {
@@ -334,6 +334,7 @@ export function RecordsPage() {
           <ViewPicker
             views={pickerViews}
             activeViewId={activeView.view_id}
+            currentUser={user}
             onSelect={selectView}
             onNew={() => {
               setEditorMode("create");
@@ -493,6 +494,8 @@ export function RecordsPage() {
         dictionary={dictionary}
         lookups={lookups}
         pending={viewPending}
+        users={users}
+        currentUser={user}
         onOpenChange={setEditorOpen}
         onSave={saveView}
         onDelete={editorMode === "edit" ? () => void deleteView() : undefined}

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { choiceOptionsForField, filterKindFor, type ChoiceLookups } from "@/lib/columnFilters";
+import { canAssignViews, canUseSavedViews } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import {
   conditionPreview,
@@ -15,7 +16,17 @@ import {
   operatorsForField,
   viewableFields,
 } from "@/lib/viewQuery";
-import type { DataDictionaryField, SavedView, ViewConditionItem, ViewConditions, ViewOperator, ViewSort } from "@/types";
+import type {
+  DataDictionaryField,
+  RoleAccess,
+  SavedView,
+  User,
+  ViewConditionItem,
+  ViewConditions,
+  ViewDraft,
+  ViewOperator,
+  ViewSort,
+} from "@/types";
 
 type TabId = "information" | "fields" | "conditions" | "sort";
 
@@ -26,8 +37,12 @@ interface ViewEditorProps {
   dictionary: DataDictionaryField[];
   lookups: ChoiceLookups;
   pending: boolean;
+  /** All users, used to populate the User Assignment picker. */
+  users: User[];
+  /** The signed-in user, whose role decides whether assignment is available at all. */
+  currentUser: User | null;
   onOpenChange: (open: boolean) => void;
-  onSave: (draft: Pick<SavedView, "name" | "order" | "fields" | "conditions" | "sorts">) => void;
+  onSave: (draft: ViewDraft) => void;
   onDelete?: () => void;
 }
 
@@ -38,6 +53,8 @@ export function ViewEditor({
   dictionary,
   lookups,
   pending,
+  users,
+  currentUser,
   onOpenChange,
   onSave,
   onDelete,
@@ -49,6 +66,8 @@ export function ViewEditor({
   const [join, setJoin] = useState<ViewConditions["join"]>(initial.conditions.join);
   const [items, setItems] = useState<ViewConditionItem[]>(initial.conditions.items);
   const [sorts, setSorts] = useState<ViewSort[]>(initial.sorts);
+  const [assignedUserIds, setAssignedUserIds] = useState<string[]>(initial.assigned_user_ids);
+  const [assignedRoles, setAssignedRoles] = useState<RoleAccess[]>(initial.assigned_roles);
   const [availableQuery, setAvailableQuery] = useState("");
   const [selectedQuery, setSelectedQuery] = useState("");
   const [availablePick, setAvailablePick] = useState<string[]>([]);
@@ -63,6 +82,8 @@ export function ViewEditor({
     setJoin(initial.conditions.join);
     setItems(initial.conditions.items);
     setSorts(initial.sorts.length ? initial.sorts : [{ field: "received_at_est", direction: "desc" }]);
+    setAssignedUserIds(initial.assigned_user_ids);
+    setAssignedRoles(initial.assigned_roles);
     setAvailableQuery("");
     setSelectedQuery("");
     setAvailablePick([]);
@@ -81,6 +102,11 @@ export function ViewEditor({
   const conditions: ViewConditions = { join, items };
   const preview = conditionPreview(conditions, dictionary);
   const orderNumber = Number(order);
+  const canAssign = currentUser ? canAssignViews(currentUser.role_access) : false;
+  const assignmentTargets = useMemo(
+    () => users.filter((row) => canUseSavedViews(row.role_access) && row.user_id !== currentUser?.user_id),
+    [users, currentUser?.user_id],
+  );
 
   function toggleAvailablePick(key: string) {
     setAvailablePick((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
@@ -143,6 +169,8 @@ export function ViewEditor({
       fields,
       conditions,
       sorts: sorts.filter((sort) => sort.field),
+      assigned_user_ids: canAssign ? assignedUserIds : [],
+      assigned_roles: canAssign ? assignedRoles : [],
     });
   }
 
@@ -190,6 +218,50 @@ export function ViewEditor({
                 <Input id="view-order" type="number" step={1} value={order} onChange={(event) => setOrder(event.target.value)} />
                 <p className="text-xs text-muted-foreground">Lower numbers appear first in the view dropdown. Default is 9999.</p>
               </div>
+              {canAssign ? (
+                <div className="space-y-2">
+                  <Label>User Assignment</Label>
+                  <div className="max-h-48 space-y-1 overflow-auto rounded-md border p-1">
+                    {(["Analyst", "Manager", "Administrator"] as RoleAccess[]).map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left text-sm hover:bg-accent"
+                        onClick={() =>
+                          setAssignedRoles((current) =>
+                            current.includes(role) ? current.filter((item) => item !== role) : [...current, role],
+                          )
+                        }
+                      >
+                        <Checkbox checked={assignedRoles.includes(role)} className="pointer-events-none" tabIndex={-1} />
+                        <span className="truncate">Assign to all “{role}” Users</span>
+                      </button>
+                    ))}
+                    {assignmentTargets.map((row) => (
+                      <button
+                        key={row.user_id}
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left text-sm hover:bg-accent"
+                        onClick={() =>
+                          setAssignedUserIds((current) =>
+                            current.includes(row.user_id)
+                              ? current.filter((item) => item !== row.user_id)
+                              : [...current, row.user_id],
+                          )
+                        }
+                      >
+                        <Checkbox checked={assignedUserIds.includes(row.user_id)} className="pointer-events-none" tabIndex={-1} />
+                        <span className="truncate">
+                          {row.first_name} {row.last_name} ({row.abbreviation}) · {row.role_access}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {assignedRoles.length || assignedUserIds.length ? "Shared with the selections above." : "Me only."}
+                  </p>
+                </div>
+              ) : null}
               {mode === "edit" && onDelete ? (
                 <div className="border-t pt-4">
                   <Button type="button" variant="destructive" disabled={pending} onClick={onDelete}>

@@ -135,8 +135,77 @@ export interface SavedView {
   fields: string[];
   conditions: ViewConditions;
   sorts: ViewSort[];
+  /**
+   * Individual users this view is shared with, beyond `owner_user_id`. Recipients can
+   * select the view but cannot edit or delete it.
+   */
+  assigned_user_ids: string[];
+  /**
+   * Roles this view is shared with. Every user holding one of these roles inherits the
+   * view. "Viewer" is never a valid entry because Viewers have no access to saved views.
+   */
+  assigned_roles: RoleAccess[];
   created_by: string;
   created_at: string;
   updated_by: string;
   updated_at: string;
+}
+
+/** The mutable slice of a saved view submitted by the view editor. */
+export type ViewDraft = Pick<
+  SavedView,
+  "name" | "order" | "fields" | "conditions" | "sorts" | "assigned_user_ids" | "assigned_roles"
+>;
+
+/** Payload a Manager or Administrator submits to create a user from the Configure tab. */
+export interface NewUserInput {
+  email: string;
+  first_name: string;
+  last_name: string;
+  abbreviation: string;
+  role_access: RoleAccess;
+}
+
+/**
+ * Egnyte file share credentials captured on the Configure > Connectors tab.
+ *
+ * Local-first placeholder only. Nothing consumes these values yet; they are written to
+ * the gitignored `.env` so the form round-trips during development. The production
+ * design stores them in AWS Systems Manager Parameter Store, read by backend Lambdas,
+ * and they will never be served to the browser.
+ */
+export interface ConnectorStatus {
+  connector_id: "egnyte";
+  /** Whether a CLIENT_ID is currently present in the environment. */
+  has_client_id: boolean;
+  /** Whether a CLIENT_SECRET is currently present in the environment. */
+  has_client_secret: boolean;
+  /** The CLIENT_ID, safe to display. The secret is never returned to the client. */
+  client_id: string;
+  updated_at: string;
+}
+
+/** Rows shown per page in the Records table. */
+export type PageSize = 25 | 50 | 100 | 500 | 1000;
+
+/** Which slice of the active view an export covers. */
+export type ExportScope = "page" | "view";
+
+export type ExportFormat = "csv" | "xlsx";
+
+/**
+ * Which record timestamps a My Snapshot date range applies to. "both" means a record
+ * qualifies when either `received_at_est` or `delivered_at_est` falls inside the range.
+ */
+export type SnapshotDateBasis = "received" | "delivered" | "both";
+
+export type SnapshotRangePreset = "all" | "today" | "week" | "month" | "year" | "custom";
+
+export interface SnapshotDateRange {
+  preset: SnapshotRangePreset;
+  basis: SnapshotDateBasis;
+  /** Inclusive start, `YYYY-MM-DD`. Empty for the "all" preset. */
+  from: string;
+  /** Inclusive end, `YYYY-MM-DD`. Empty for the "all" preset. */
+  to: string;
 }

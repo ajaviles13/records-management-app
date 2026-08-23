@@ -75,6 +75,8 @@ const VIEW_COLUMNS = [
   "fields_json",
   "conditions_json",
   "sorts_json",
+  "assigned_user_ids_json",
+  "assigned_roles_json",
   "created_by",
   "created_at",
   "updated_by",
@@ -279,6 +281,8 @@ app.post("/api/views", (req, res) => {
     fields_json: JSON.stringify(fields),
     conditions_json: JSON.stringify(conditions),
     sorts_json: JSON.stringify(sorts),
+    assigned_user_ids_json: JSON.stringify(parsed.assigned_user_ids ?? []),
+    assigned_roles_json: JSON.stringify(parsed.assigned_roles ?? []),
     created_by: userId,
     created_at: now,
     updated_by: userId,
@@ -324,6 +328,8 @@ app.patch("/api/views/:id", (req, res) => {
   if (parsed.fields) row.fields_json = JSON.stringify(parsed.fields);
   if (parsed.conditions) row.conditions_json = JSON.stringify(parsed.conditions);
   if (parsed.sorts) row.sorts_json = JSON.stringify(parsed.sorts);
+  if (parsed.assigned_user_ids) row.assigned_user_ids_json = JSON.stringify(parsed.assigned_user_ids);
+  if (parsed.assigned_roles) row.assigned_roles_json = JSON.stringify(parsed.assigned_roles);
   row.updated_by = userId;
   row.updated_at = nowIso();
   writeCsv(FILES.views, views, VIEW_COLUMNS);
@@ -366,6 +372,20 @@ function parseJson<T>(raw: string, fallback: T): T {
   }
 }
 
+const ROLES = ["Analyst", "Manager", "Administrator", "Viewer"] as const;
+type Role = (typeof ROLES)[number];
+
+/** Viewers never have access to saved views, so they are not a valid assignment target. */
+function isAssignableRole(value: string): value is Role {
+  return value === "Analyst" || value === "Manager" || value === "Administrator";
+}
+
+function parseStringArray(raw: string | undefined): string[] {
+  const parsed = parseJson<unknown>(raw ?? "[]", []);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.map((item) => String(item).trim()).filter(Boolean);
+}
+
 function normalizeConditionItems(items: unknown): { field: string; operator: string; value: string[] }[] {
   if (!Array.isArray(items)) return [];
   const next: { field: string; operator: string; value: string[] }[] = [];
@@ -388,6 +408,8 @@ function parseView(row: ViewRow) {
   const conditions = parseJson<{ join?: string; items?: unknown[] }>(row.conditions_json, { join: "AND", items: [] });
   const sorts = parseJson<{ field?: string; direction?: string }[]>(row.sorts_json, []);
   return {
+    assigned_user_ids: parseStringArray(row.assigned_user_ids_json),
+    assigned_roles: parseStringArray(row.assigned_roles_json).filter(isAssignableRole),
     view_id: row.view_id,
     name: row.name,
     owner_user_id: row.owner_user_id,
@@ -422,6 +444,8 @@ function sanitizeViewBody(
       fields?: string[];
       conditions?: { join: "AND" | "OR"; items: { field: string; operator: string; value: string[] }[] };
       sorts?: { field: string; direction: "asc" | "desc" }[];
+      assigned_user_ids?: string[];
+      assigned_roles?: Role[];
     } {
   const next: {
     name?: string;
@@ -429,6 +453,8 @@ function sanitizeViewBody(
     fields?: string[];
     conditions?: { join: "AND" | "OR"; items: { field: string; operator: string; value: string[] }[] };
     sorts?: { field: string; direction: "asc" | "desc" }[];
+    assigned_user_ids?: string[];
+    assigned_roles?: Role[];
   } = {};
 
   if (typeof body.name === "string") next.name = body.name.trim();
@@ -456,6 +482,15 @@ function sanitizeViewBody(
       })
       .filter((item) => item.field);
   }
+  if (Array.isArray(body.assigned_user_ids)) {
+    next.assigned_user_ids = [...new Set(body.assigned_user_ids.map((item) => String(item).trim()).filter(Boolean))];
+  }
+  if (Array.isArray(body.assigned_roles)) {
+    const roles = body.assigned_roles.map((item) => String(item).trim());
+    const invalid = roles.find((role) => !isAssignableRole(role));
+    if (invalid) return { error: `"${invalid}" cannot be assigned a saved view.` };
+    next.assigned_roles = [...new Set(roles)] as Role[];
+  }
 
   if (!options.partial) {
     if (!next.name) return { error: "View name is required." };
@@ -463,6 +498,8 @@ function sanitizeViewBody(
     if (next.order == null) next.order = 9999;
     if (!next.conditions) next.conditions = { join: "AND", items: [] };
     if (!next.sorts) next.sorts = [];
+    if (!next.assigned_user_ids) next.assigned_user_ids = [];
+    if (!next.assigned_roles) next.assigned_roles = [];
   } else if (next.fields && next.fields.length === 0) {
     return { error: "Select at least one field." };
   }
