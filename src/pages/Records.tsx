@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, FilterX, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, FilterX, FolderInput, Pencil, X } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { ColumnFilter } from "@/components/records/ColumnFilter";
-import { RecordSheet, emptyRecord } from "@/components/records/RecordSheet";
+import { RecordModal, emptyRecord } from "@/components/records/RecordModal";
+import { ImportRecordsDialog } from "@/components/records/ImportRecordsDialog";
+import { RecordsPagination } from "@/components/records/RecordsPagination";
+import { ExportDialog } from "@/components/records/ExportDialog";
 import { ViewEditor } from "@/components/records/ViewEditor";
 import { ViewPicker } from "@/components/records/ViewPicker";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -23,7 +27,11 @@ import {
   type ColumnFilterValue,
 } from "@/lib/columnFilters";
 import { analystLabel, formatDateTime, yesNoLabel } from "@/lib/format";
-import { canEditRecords } from "@/lib/roles";
+import { canEditRecords, canExport } from "@/lib/roles";
+import { clampPage, pageSlice } from "@/lib/pagination";
+import { basisLabel, recordMatchesWindow } from "@/lib/dateRange";
+import { parseRecordsLink, type RecordsDateWindow } from "@/lib/recordsNav";
+import { exportCsv, exportXlsx } from "@/lib/exportRecords";
 import { deriveStatus } from "@/lib/status";
 import { cn } from "@/lib/utils";
 import {
@@ -34,7 +42,18 @@ import {
   sanitizeViewFields,
   sortRecords,
 } from "@/lib/viewQuery";
-import type { DataDictionaryField, FieldOption, FileRecord, LanguageCode, SavedView, User, ViewDraft } from "@/types";
+import type {
+  DataDictionaryField,
+  ExportFormat,
+  ExportScope,
+  FieldOption,
+  FileRecord,
+  LanguageCode,
+  PageSize,
+  SavedView,
+  User,
+  ViewDraft,
+} from "@/types";
 
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   file_name: 650,
@@ -57,6 +76,7 @@ const FALLBACK_COLUMN_WIDTH = 200;
 
 export function RecordsPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const [records, setRecords] = useState<FileRecord[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [options, setOptions] = useState<FieldOption[]>([]);
@@ -72,8 +92,15 @@ export function RecordsPage() {
   const [sortOverride, setSortOverride] = useState(false);
   const [columnWidths, setColumnWidths] = useLocalStorage("sla.records.columnWidths", DEFAULT_COLUMN_WIDTHS);
   const [columnFilters, setColumnFilters] = useState<Partial<Record<string, ColumnFilterValue>>>({});
+  const [dateWindow, setDateWindow] = useState<RecordsDateWindow | null>(null);
+  const [pageSize, setPageSize] = useLocalStorage<PageSize>(
+    user ? `sla.records.pageSize.${user.user_id}` : "sla.records.pageSize",
+    25,
+  );
+  const [page, setPage] = useState(1);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [mode, setMode] = useState<"create" | "edit">("edit");
   const [draft, setDraft] = useState<FileRecord>(emptyRecord());
   const [pending, setPending] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -81,7 +108,10 @@ export function RecordsPage() {
   const [editingViewId, setEditingViewId] = useState<string>(ALL_RECORDS_VIEW_ID);
   const [viewPending, setViewPending] = useState(false);
   const dragRef = useRef<{ key: string; startX: number; startWidth: number } | null>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const hScrollRef = useRef<HTMLDivElement>(null);
   const droppedToastRef = useRef<string>("");
+  const appliedSearchRef = useRef<string | null>(null);
 
   const readOnly = !user || !canEditRecords(user.role_access);
   const lookups = useMemo(() => ({ options, users, languageCodes }), [options, users, languageCodes]);
@@ -92,13 +122,14 @@ export function RecordsPage() {
     [pickerViews, activeViewId, builtinView],
   );
   const visibleColumns = useMemo(() => sanitizeViewFields(activeView.fields, dictionary), [activeView.fields, dictionary]);
+  const editColumnWidth = readOnly ? 0 : 52;
   const tableWidth = useMemo(
     () =>
       visibleColumns.fields.reduce(
         (sum, key) => sum + (columnWidths[key] ?? DEFAULT_COLUMN_WIDTHS[key] ?? FALLBACK_COLUMN_WIDTH),
-        0,
+        editColumnWidth,
       ),
-    [visibleColumns.fields, columnWidths],
+    [visibleColumns.fields, columnWidths, editColumnWidth],
   );
   const hasActiveFilters = Object.values(columnFilters).some(isFilterActive);
   const editingView = pickerViews.find((view) => view.view_id === editingViewId) ?? activeView;
@@ -181,15 +212,53 @@ export function RecordsPage() {
         return matchesColumnFilter(filterValue(row, key), filter ?? "", filterKindFor(key, dictionary));
       }),
     );
-    if (!sortOverride) return sortRecords(byHeader, activeView.sorts);
-    return [...byHeader].sort((a, b) => {
+    const dated = dateWindow
+      ? byHeader.filter((row) => recordMatchesWindow(row, dateWindow, dateWindow.basis))
+      : byHeader;
+    if (!sortOverride) return sortRecords(dated, activeView.sorts);
+    return [...dated].sort((a, b) => {
       const cmp = recordFieldValue(a, sortKey).localeCompare(recordFieldValue(b, sortKey), undefined, {
         numeric: true,
         sensitivity: "base",
       });
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [records, columnFilters, sortKey, sortDir, dictionary, activeView, visibleColumns.fields, sortOverride, user?.user_id]);
+  }, [
+    records,
+    columnFilters,
+    sortKey,
+    sortDir,
+    dictionary,
+    activeView,
+    visibleColumns.fields,
+    sortOverride,
+    user?.user_id,
+    dateWindow,
+  ]);
+  const currentPage = clampPage(page, filtered.length, pageSize);
+  const pagedRecords = useMemo(() => pageSlice(filtered, currentPage, pageSize), [filtered, currentPage, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeViewId, columnFilters, pageSize]);
+  useEffect(() => {
+    if (appliedSearchRef.current === location.search) return;
+    appliedSearchRef.current = location.search;
+    const link = parseRecordsLink(location.search);
+    if (!location.search) {
+      setDateWindow(null);
+      return;
+    }
+    setActiveViewId(link.viewId ?? ALL_RECORDS_VIEW_ID);
+    setDateWindow(link.dateWindow ?? null);
+    const next: Partial<Record<string, ColumnFilterValue>> = {};
+    for (const [key, values] of Object.entries(link.filters ?? {})) {
+      const kind = filterKindFor(key, dictionary);
+      next[key] = kind === "choice" || kind === "boolean" ? values : (values[0] ?? "");
+    }
+    setColumnFilters(next);
+    setPage(1);
+  }, [location.search, dictionary, setActiveViewId]);
 
   function widthFor(key: string) {
     return columnWidths[key] ?? DEFAULT_COLUMN_WIDTHS[key] ?? FALLBACK_COLUMN_WIDTH;
@@ -203,6 +272,7 @@ export function RecordsPage() {
     const firstSort = next.sorts[0];
     setSortKey(firstSort?.field ?? "received_at_est");
     setSortDir(firstSort?.direction ?? "desc");
+    setDateWindow(null);
   }
 
   function toggleSort(key: string) {
@@ -226,14 +296,15 @@ export function RecordsPage() {
     document.body.style.userSelect = "none";
   }
 
-  function openCreate() {
-    setMode("create");
-    setDraft(emptyRecord(user?.role_access === "Analyst" ? user.user_id : ""));
-    setSheetOpen(true);
+  function syncHorizontalScroll(source: "table" | "bar") {
+    const table = tableScrollRef.current;
+    const bar = hScrollRef.current;
+    if (!table || !bar) return;
+    if (source === "table" && bar.scrollLeft !== table.scrollLeft) bar.scrollLeft = table.scrollLeft;
+    if (source === "bar" && table.scrollLeft !== bar.scrollLeft) table.scrollLeft = bar.scrollLeft;
   }
 
   function openEdit(record: FileRecord) {
-    setMode("edit");
     setDraft({ ...record });
     setSheetOpen(true);
   }
@@ -241,19 +312,32 @@ export function RecordsPage() {
   async function save() {
     setPending(true);
     try {
-      if (mode === "create") {
-        await api.createRecord(draft);
-        toast.success("Record created.");
-      } else {
-        await api.updateRecord(draft.record_id, draft);
-        toast.success("Record updated.");
-      }
+      await api.updateRecord(draft.record_id, draft);
+      toast.success("Record updated.");
       setSheetOpen(false);
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed.");
     } finally {
       setPending(false);
+    }
+  }
+
+  function exportRecords(scope: ExportScope, format: ExportFormat) {
+    const rows = scope === "page" ? pagedRecords : filtered;
+    const slug =
+      activeView.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "all-records";
+    const fileName = `${slug}-${new Date().toISOString().slice(0, 10)}`;
+    const lookups = { dictionary, users, languages: languageCodes };
+
+    if (format === "csv") exportCsv(rows, visibleColumns.fields, fileName, lookups);
+    else {
+      void exportXlsx(rows, visibleColumns.fields, fileName, lookups).catch((err) =>
+        toast.error(err instanceof Error ? err.message : "Excel export failed."),
+      );
     }
   }
 
@@ -347,7 +431,20 @@ export function RecordsPage() {
             }}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {dateWindow ? (
+            <span className="flex items-center gap-1.5 rounded-full border bg-muted px-3 py-1 text-xs">
+              {basisLabel(dateWindow.basis)} between {dateWindow.from} and {dateWindow.to}
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setDateWindow(null)}
+                aria-label="Clear date range filter"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ) : null}
           <Button
             variant="outline"
             size="icon-sm"
@@ -357,23 +454,46 @@ export function RecordsPage() {
           >
             <FilterX className="size-4" />
           </Button>
+          {canExport(user?.role_access ?? "Viewer") ? (
+            <Button variant="outline" onClick={() => setExportOpen(true)}>
+              Export Data
+            </Button>
+          ) : null}
           {readOnly ? null : (
-            <Button onClick={openCreate}>
-              <Plus className="size-4" />
-              New record
+            <Button onClick={() => setImportOpen(true)}>
+              <FolderInput className="size-4" />
+              Import Records
             </Button>
           )}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto rounded-lg border bg-card">
-        <Table className="w-max table-fixed" style={{ width: tableWidth }}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card">
+        <div
+          ref={tableScrollRef}
+          className="records-table-scroll min-h-0 flex-1 overflow-auto"
+          onScroll={() => syncHorizontalScroll("table")}
+        >
+        <Table
+          className="w-max table-fixed"
+          containerClassName="overflow-visible w-max min-h-full"
+          style={{ width: tableWidth }}
+        >
           <colgroup>
+            {!readOnly && <col style={{ width: editColumnWidth }} />}
             {visibleColumns.fields.map((key) => (
               <col key={key} style={{ width: widthFor(key) }} />
             ))}
           </colgroup>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
+              {!readOnly && (
+                <TableHead
+                  className="sticky top-0 left-0 z-40 bg-muted/70 px-2"
+                  style={{ width: editColumnWidth }}
+                >
+                  <span className="sr-only">Edit</span>
+                </TableHead>
+              )}
               {visibleColumns.fields.map((key, index) => {
                 const kind = filterKindFor(key, dictionary);
                 const alias = fieldAlias(key, dictionary);
@@ -381,7 +501,7 @@ export function RecordsPage() {
                   <TableHead
                     key={key}
                     className={cn(
-                      "relative h-auto sticky top-0 z-10 whitespace-normal bg-muted/70 px-2 py-1.5 align-top",
+                          "relative h-auto sticky top-0 z-30 whitespace-normal bg-muted/70 px-2 py-1.5 align-top",
                       index < visibleColumns.fields.length - 1 && "border-r border-border",
                     )}
                     style={{ width: widthFor(key), minWidth: widthFor(key), maxWidth: widthFor(key) }}
@@ -439,17 +559,31 @@ export function RecordsPage() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={Math.max(visibleColumns.fields.length, 1)} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={Math.max(visibleColumns.fields.length + (readOnly ? 0 : 1), 1)} className="h-24 text-center text-muted-foreground">
                   No records match the current view and filters.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((record, rowIndex) => (
+              pagedRecords.map((record, rowIndex) => (
                 <TableRow
                   key={record.record_id}
-                  className={cn("cursor-pointer", rowIndex % 2 === 1 && "bg-muted/30")}
-                  onClick={() => openEdit(record)}
+                  className={cn(rowIndex % 2 === 1 && "bg-muted/30")}
                 >
+                  {!readOnly && (
+                    <TableCell
+                      className={cn("sticky left-0 z-20 px-2",  "bg-card")}
+                    >
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                        aria-label={`Edit ${record.file_name}`}
+                        onClick={() => openEdit(record)}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                   {visibleColumns.fields.map((key, index) => {
                     const value = cellValue(record, key);
                     const raw = recordFieldValue(record, key);
@@ -472,11 +606,27 @@ export function RecordsPage() {
             )}
           </TableBody>
         </Table>
+        </div>
+        <div
+          ref={hScrollRef}
+          className="records-h-scroll shrink-0 border-t"
+          onScroll={() => syncHorizontalScroll("bar")}
+          aria-label="Scroll records columns"
+        >
+          <div style={{ width: tableWidth, height: 1 }} />
+        </div>
       </div>
-      <RecordSheet
+      <RecordsPagination
+        total={filtered.length}
+        page={currentPage}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
+      <RecordModal
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        mode={mode}
+        mode="edit"
         draft={draft}
         onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
         onSave={save}
@@ -486,6 +636,15 @@ export function RecordsPage() {
         options={options}
         dictionary={dictionary}
         languageCodes={languageCodes}
+        role={user?.role_access}
+      />
+      <ImportRecordsDialog open={importOpen} onOpenChange={setImportOpen} />
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        pageCount={pagedRecords.length}
+        viewCount={filtered.length}
+        onExport={exportRecords}
       />
       <ViewEditor
         open={editorOpen}

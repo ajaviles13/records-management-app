@@ -109,6 +109,40 @@
     --template-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M3.2 1.4h6.1L13 5.1v9.1c0 .8-.6 1.4-1.4 1.4H4.2c-.8 0-1.4-.6-1.4-1.4V2.8c0-.8.6-1.4 1.4-1.4zm5.9.5v3.6H13'/%3E%3Cpath fill='black' d='M4.9 12.3 6.2 6.6h1.2l.7 3.6.8-3.6h1.1l-1.2 5.7H7.6l-.7-3.4-.7 3.4H4.9z'/%3E%3C/svg%3E");
   }
 
+  /**
+   * Always-visible horizontal scrollbar for Records. macOS overlay scrollbars otherwise
+   * hide until a trackpad gesture, which leaves mouse users with no affordance.
+   */
+  .records-h-scroll {
+    height: 16px;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    scrollbar-width: auto;
+    scrollbar-color: var(--muted-foreground) var(--muted);
+  }
+
+  .records-h-scroll::-webkit-scrollbar {
+    height: 14px;
+    display: block;
+  }
+
+  .records-h-scroll::-webkit-scrollbar-track {
+    background: var(--muted);
+  }
+
+  .records-h-scroll::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 999px;
+  }
+
+  .records-table-scroll {
+    scrollbar-width: none;
+  }
+
+  .records-table-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
   .template-type-icon-pdf {
     color: #c43d3d;
     --template-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='black' d='M3.2 1.4h6.1L13 5.1v9.1c0 .8-.6 1.4-1.4 1.4H4.2c-.8 0-1.4-.6-1.4-1.4V2.8c0-.8.6-1.4 1.4-1.4zm5.9.5v3.6H13'/%3E%3Cpath fill='black' d='M5.1 7.1h1.7c1.1 0 1.8.6 1.8 1.6 0 1-.7 1.6-1.8 1.6H6.2v1.9H5.1V7.1zm1.1.9v1.4h.5c.5 0 .8-.3.8-.7 0-.4-.3-.7-.8-.7h-.5z'/%3E%3C/svg%3E");

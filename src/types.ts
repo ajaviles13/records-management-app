@@ -8,6 +8,13 @@ export interface LanguageCode {
   country: string;
 }
 
+/** Payload a Manager or Administrator submits to add a language code. */
+export interface NewLanguageInput {
+  code_id: string;
+  language: string;
+  country: string;
+}
+
 export interface User {
   user_id: string;
   email: string;
@@ -60,11 +67,20 @@ export interface FileRecord {
 export interface AuditLogEntry {
   id: string;
   timestamp: string;
+  /** Primary key of the changed row, within `artifact_table`. */
   artifact_id: string;
+  /**
+   * Which store the change landed in: `sla-file-records`, `sla-users`, or `connectors`.
+   * The audit log is no longer records-only, so this is what disambiguates `artifact_id`.
+   */
+  artifact_table: string;
+  /** The column whose value changed, which `old_field_value` and `new_field_value` describe. */
+  artifact_name: string;
   old_field_value: string;
   new_field_value: string;
   trigger_source: string;
   user_id: string;
+  /** `Created`, `Updated`, or `Deleted`. */
   event_type: string;
 }
 

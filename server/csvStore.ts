@@ -30,11 +30,25 @@ export function readCsv<T extends Record<string, string>>(filename: string): T[]
   }) as T[];
 }
 
+/**
+ * The line ending already used by a file, so rewriting one row does not reflow the whole
+ * file. The seeded CSVs are CRLF; without this a single edit produces a diff touching
+ * every line.
+ */
+function existingDelimiter(filePath: string): "\r\n" | "\n" {
+  if (!existsSync(filePath)) return "\r\n";
+  const raw = readFileSync(filePath, "utf8");
+  const firstBreak = raw.indexOf("\n");
+  if (firstBreak <= 0) return "\r\n";
+  return raw[firstBreak - 1] === "\r" ? "\r\n" : "\n";
+}
+
 export function writeCsv<T extends Record<string, string>>(filename: string, rows: T[], columns: string[]): void {
   const filePath = path.join(DATA_DIR, filename);
   const output = stringify(rows, {
     header: true,
     columns,
+    record_delimiter: existingDelimiter(filePath),
   });
   writeFileSync(filePath, output, "utf8");
 }

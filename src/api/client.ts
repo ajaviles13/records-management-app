@@ -1,4 +1,15 @@
-import type { AuditLogEntry, DataDictionaryField, FieldOption, FileRecord, LanguageCode, SavedView, User } from "@/types";
+import type {
+  AuditLogEntry,
+  ConnectorStatus,
+  DataDictionaryField,
+  FieldOption,
+  FileRecord,
+  LanguageCode,
+  NewLanguageInput,
+  NewUserInput,
+  SavedView,
+  User,
+} from "@/types";
 
 const SESSION_KEY = "sla.user";
 
@@ -42,6 +53,12 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(patch),
     }),
+  createUser: (input: NewUserInput) =>
+    request<{ user: User }>("/api/users", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+  deleteUser: (id: string) => request<{ ok: boolean }>(`/api/users/${id}`, { method: "DELETE" }),
   records: () => request<{ records: FileRecord[] }>("/api/records"),
   createRecord: (record: Partial<FileRecord>) =>
     request<{ record: FileRecord }>("/api/records", {
@@ -57,6 +74,11 @@ export const api = {
   fieldOptions: () => request<{ options: FieldOption[] }>("/api/field-options"),
   dataDictionary: () => request<{ fields: DataDictionaryField[] }>("/api/data-dictionary"),
   languageCodes: () => request<{ languages: LanguageCode[] }>("/api/language-codes"),
+  createLanguage: (input: NewLanguageInput) =>
+    request<{ language: LanguageCode }>("/api/language-codes", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
   views: () => request<{ views: SavedView[] }>("/api/views"),
   createView: (view: Partial<SavedView>) =>
     request<{ view: SavedView }>("/api/views", {
@@ -69,4 +91,10 @@ export const api = {
       body: JSON.stringify(patch),
     }),
   deleteView: (id: string) => request<{ ok: boolean }>(`/api/views/${id}`, { method: "DELETE" }),
+  connector: () => request<{ connector: ConnectorStatus }>("/api/connectors/egnyte"),
+  saveConnector: (input: { client_id: string; client_secret: string }) =>
+    request<{ connector: ConnectorStatus }>("/api/connectors/egnyte", {
+      method: "PUT",
+      body: JSON.stringify(input),
+    }),
 };

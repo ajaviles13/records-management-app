@@ -7,6 +7,7 @@ import { AccountPage } from "@/pages/Account";
 import { AuditLogPage } from "@/pages/AuditLog";
 import { ConfigureConnectorsPage } from "@/pages/configure/Connectors";
 import { ConfigureLayout } from "@/pages/configure/ConfigureLayout";
+import { ConfigureLanguagesPage } from "@/pages/configure/Languages";
 import { ConfigureUsersPage } from "@/pages/configure/Users";
 import { DashboardPage } from "@/pages/Dashboard";
 import { LoginPage } from "@/pages/Login";
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/configure" element={<ConfigureLayout />}>
             <Route index element={<ConfigureRedirect />} />
             <Route path="users" element={<ConfigureUsersPage />} />
+            <Route path="languages" element={<ConfigureLanguagesPage />} />
             <Route path="connectors" element={<ConfigureConnectorsPage />} />
           </Route>
         </Route>

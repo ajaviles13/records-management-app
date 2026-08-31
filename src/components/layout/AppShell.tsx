@@ -7,13 +7,14 @@ import {
   LayoutDashboard,
   LogOut,
   ScrollText,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { displayName, NAV_ITEMS, userInitials } from "@/lib/roles";
+import { displayName, navItemsFor, userInitials } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -22,6 +23,7 @@ const ICONS = {
   "/snapshot": BarChart3,
   "/audit": ScrollText,
   "/dashboard": LayoutDashboard,
+  "/configure": Settings,
 } as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -31,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!user) return null;
 
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(user.role_access));
+  const items = navItemsFor(user.role_access);
   const name = displayName(user.first_name, user.last_name);
   const initials = userInitials(user.first_name, user.last_name);
 
@@ -66,23 +68,44 @@ export function AppShell({ children }: { children: ReactNode }) {
           {items.map((item) => {
             const Icon = ICONS[item.to as keyof typeof ICONS];
             return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                title={collapsed ? item.label : undefined}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center rounded-md text-sm font-medium transition-colors",
-                    collapsed ? "justify-center px-0 py-2.5" : "gap-2 px-3 py-2",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
-                  )
-                }
-              >
-                {Icon ? <Icon className="size-4 shrink-0" /> : null}
-                {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
-              </NavLink>
+              <div key={item.to}>
+                <NavLink
+                  to={item.to}
+                  title={collapsed ? item.label : undefined}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center rounded-md text-sm font-medium transition-colors",
+                      collapsed ? "justify-center px-0 py-2.5" : "gap-2 px-3 py-2",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/80 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                    )
+                  }
+                >
+                  {Icon ? <Icon className="size-4 shrink-0" /> : null}
+                  {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
+                </NavLink>
+                {item.children?.length && !collapsed ? (
+                  <div className="mt-1 flex flex-col gap-1 border-l border-sidebar-border pl-3">
+                    {item.children.map((child) => (
+                      <NavLink
+                        key={child.to}
+                        to={child.to}
+                        className={({ isActive }) =>
+                          cn(
+                            "rounded-md px-3 py-1.5 text-sm transition-colors",
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                          )
+                        }
+                      >
+                        {child.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </nav>

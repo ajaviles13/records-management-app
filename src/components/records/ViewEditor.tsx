@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus, Search, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { choiceOptionsForField, filterKindFor, type ChoiceLookups } from "@/lib/columnFilters";
 import { canAssignViews, canUseSavedViews } from "@/lib/roles";
@@ -72,6 +84,8 @@ export function ViewEditor({
   const [selectedQuery, setSelectedQuery] = useState("");
   const [availablePick, setAvailablePick] = useState<string[]>([]);
   const [selectedPick, setSelectedPick] = useState<string[]>([]);
+  const [assignmentOpen, setAssignmentOpen] = useState(false);
+  const [assignmentQuery, setAssignmentQuery] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -88,6 +102,8 @@ export function ViewEditor({
     setSelectedQuery("");
     setAvailablePick([]);
     setSelectedPick([]);
+    setAssignmentOpen(false);
+    setAssignmentQuery("");
   }, [open]);
 
   const allFields = useMemo(() => viewableFields(dictionary), [dictionary]);
@@ -106,6 +122,24 @@ export function ViewEditor({
   const assignmentTargets = useMemo(
     () => users.filter((row) => canUseSavedViews(row.role_access) && row.user_id !== currentUser?.user_id),
     [users, currentUser?.user_id],
+  );
+  const assignmentSummary = useMemo(() => {
+    if (!assignedRoles.length && !assignedUserIds.length) return "Me";
+    const parts: string[] = [];
+    for (const role of ["Analyst", "Manager", "Administrator"] as RoleAccess[]) {
+      if (assignedRoles.includes(role)) parts.push(`All ${role} Users`);
+    }
+    for (const row of assignmentTargets) {
+      if (assignedUserIds.includes(row.user_id)) parts.push(`${row.first_name} ${row.last_name}`);
+    }
+    return parts.join(", ") || "Me";
+  }, [assignedRoles, assignedUserIds, assignmentTargets]);
+  const assignmentQueryNormalized = assignmentQuery.trim().toLowerCase();
+  const assignmentRoleOptions = (["Analyst", "Manager", "Administrator"] as RoleAccess[]).filter((role) =>
+    `assign to all "${role}" users`.includes(assignmentQueryNormalized),
+  );
+  const assignmentUserOptions = assignmentTargets.filter((row) =>
+    `${row.first_name} ${row.last_name} ${row.abbreviation} ${row.role_access}`.toLowerCase().includes(assignmentQueryNormalized),
   );
 
   function toggleAvailablePick(key: string) {
@@ -221,44 +255,73 @@ export function ViewEditor({
               {canAssign ? (
                 <div className="space-y-2">
                   <Label>User Assignment</Label>
-                  <div className="max-h-48 space-y-1 overflow-auto rounded-md border p-1">
-                    {(["Analyst", "Manager", "Administrator"] as RoleAccess[]).map((role) => (
-                      <button
-                        key={role}
-                        type="button"
-                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left text-sm hover:bg-accent"
-                        onClick={() =>
-                          setAssignedRoles((current) =>
-                            current.includes(role) ? current.filter((item) => item !== role) : [...current, role],
-                          )
-                        }
-                      >
-                        <Checkbox checked={assignedRoles.includes(role)} className="pointer-events-none" tabIndex={-1} />
-                        <span className="truncate">Assign to all “{role}” Users</span>
-                      </button>
-                    ))}
-                    {assignmentTargets.map((row) => (
-                      <button
-                        key={row.user_id}
-                        type="button"
-                        className="flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left text-sm hover:bg-accent"
-                        onClick={() =>
-                          setAssignedUserIds((current) =>
-                            current.includes(row.user_id)
-                              ? current.filter((item) => item !== row.user_id)
-                              : [...current, row.user_id],
-                          )
-                        }
-                      >
-                        <Checkbox checked={assignedUserIds.includes(row.user_id)} className="pointer-events-none" tabIndex={-1} />
-                        <span className="truncate">
-                          {row.first_name} {row.last_name} ({row.abbreviation}) · {row.role_access}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  <Popover open={assignmentOpen} onOpenChange={setAssignmentOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" className="w-full justify-between font-normal">
+                        <span className="truncate text-left">{assignmentSummary}</span>
+                        <ChevronDown className="size-4 shrink-0 opacity-60" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-80 overflow-hidden p-0">
+                      <div className="border-b bg-muted p-1.5">
+                        <div className="flex items-center gap-1.5 rounded-sm border border-input bg-background px-2 shadow-xs">
+                          <Search className="size-3.5 shrink-0 text-muted-foreground" />
+                          <input
+                            value={assignmentQuery}
+                            onChange={(event) => setAssignmentQuery(event.target.value)}
+                            placeholder="Search users"
+                            className="h-8 w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-64 overflow-auto p-1">
+                        {assignmentRoleOptions.map((role) => (
+                          <button
+                            key={role}
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                            onClick={() =>
+                              setAssignedRoles((current) =>
+                                current.includes(role) ? current.filter((item) => item !== role) : [...current, role],
+                              )
+                            }
+                          >
+                            <Checkbox checked={assignedRoles.includes(role)} className="pointer-events-none" tabIndex={-1} />
+                            <span className="truncate">Assign to all &ldquo;{role}&rdquo; Users</span>
+                          </button>
+                        ))}
+                        {assignmentRoleOptions.length && assignmentUserOptions.length ? (
+                          <div className="my-1 h-px bg-border" />
+                        ) : null}
+                        {assignmentUserOptions.map((row) => (
+                          <button
+                            key={row.user_id}
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                            onClick={() =>
+                              setAssignedUserIds((current) =>
+                                current.includes(row.user_id)
+                                  ? current.filter((item) => item !== row.user_id)
+                                  : [...current, row.user_id],
+                              )
+                            }
+                          >
+                            <Checkbox checked={assignedUserIds.includes(row.user_id)} className="pointer-events-none" tabIndex={-1} />
+                            <span className="truncate">
+                              {row.first_name} {row.last_name} ({row.abbreviation}) · {row.role_access}
+                            </span>
+                          </button>
+                        ))}
+                        {!assignmentRoleOptions.length && !assignmentUserOptions.length ? (
+                          <p className="px-2 py-1.5 text-sm text-muted-foreground">No matches.</p>
+                        ) : null}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <p className="text-xs text-muted-foreground">
-                    {assignedRoles.length || assignedUserIds.length ? "Shared with the selections above." : "Me only."}
+                    {assignedRoles.length || assignedUserIds.length
+                      ? "Shared with the selections above."
+                      : "Private to you (“Me”). Open the picker to share it with specific users or whole roles."}
                   </p>
                 </div>
               ) : null}

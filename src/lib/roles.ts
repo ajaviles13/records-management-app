@@ -10,16 +10,17 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { to: "/records", label: "Records", roles: ["Analyst", "Manager", "Administrator"] },
   { to: "/snapshot", label: "My Snapshot", roles: ["Analyst", "Manager", "Administrator"] },
-  { to: "/audit", label: "Audit Log", roles: ["Administrator"] },
+  { to: "/audit", label: "Audit Log", roles: ["Manager", "Administrator"] },
   { to: "/dashboard", label: "Dashboard", roles: ["Manager", "Administrator", "Viewer"] },
   {
     to: "/configure",
     label: "Configure",
     roles: ["Manager", "Administrator"],
-    children: [
-      { to: "/configure/users", label: "Users", roles: ["Manager", "Administrator"] },
-      { to: "/configure/connectors", label: "Connectors", roles: ["Administrator"] },
-    ],
+        children: [
+          { to: "/configure/users", label: "Users", roles: ["Manager", "Administrator"] },
+          { to: "/configure/languages", label: "Languages", roles: ["Manager", "Administrator"] },
+          { to: "/configure/connectors", label: "Connectors", roles: ["Administrator"] },
+        ],
   },
 ];
 
@@ -77,6 +78,16 @@ export function canAssignRole(actor: RoleAccess, target: RoleAccess): boolean {
 /** Only Administrators can configure external connectors. */
 export function canSeeConnectors(role: RoleAccess): boolean {
   return role === "Administrator";
+}
+
+/** Managers and Administrators can add language codes. */
+export function canManageLanguages(role: RoleAccess): boolean {
+  return role === "Manager" || role === "Administrator";
+}
+
+/** Only Managers can flip My Snapshot between team-wide and their own documents. */
+export function canToggleSnapshotScope(role: RoleAccess): boolean {
+  return role === "Manager";
 }
 
 /** Saved views are unavailable to Viewers. */
