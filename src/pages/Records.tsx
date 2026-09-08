@@ -474,7 +474,7 @@ export function RecordsPage() {
           onScroll={() => syncHorizontalScroll("table")}
         >
         <Table
-          className="w-max table-fixed"
+          className="w-max table-fixed border-separate border-spacing-0"
           containerClassName="overflow-visible w-max min-h-full"
           style={{ width: tableWidth }}
         >
@@ -484,11 +484,11 @@ export function RecordsPage() {
               <col key={key} style={{ width: widthFor(key) }} />
             ))}
           </colgroup>
-          <TableHeader>
+          <TableHeader className="bg-muted">
             <TableRow className="hover:bg-transparent">
               {!readOnly && (
                 <TableHead
-                  className="sticky top-0 left-0 z-40 bg-muted/70 px-2"
+                  className="sticky top-0 left-0 z-40 bg-muted px-2"
                   style={{ width: editColumnWidth }}
                 >
                   <span className="sr-only">Edit</span>
@@ -501,7 +501,7 @@ export function RecordsPage() {
                   <TableHead
                     key={key}
                     className={cn(
-                          "relative h-auto sticky top-0 z-30 whitespace-normal bg-muted/70 px-2 py-1.5 align-top",
+                          "relative h-auto sticky top-0 z-30 whitespace-normal bg-muted px-2 py-1.5 align-top",
                       index < visibleColumns.fields.length - 1 && "border-r border-border",
                     )}
                     style={{ width: widthFor(key), minWidth: widthFor(key), maxWidth: widthFor(key) }}
